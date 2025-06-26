@@ -2,99 +2,152 @@ import turtle
 
 # --- Configuration ---
 SPIDER_COLOR = "black"
-EYE_COLOR = "red"
-BACKGROUND_COLOR = "lightgray"
-PEN_SIZE = 5
+HOURGLASS_COLOR = "#b71c1c"  # A dark, blood-red color
+WEB_COLOR = "gray"
+BACKGROUND_COLOR = "white"
 DRAW_SPEED = 0  # 0 is the fastest, 10 is fast, 1 is slowest
 
-# --- Main Drawing Functions ---
+# --- Helper and Drawing Functions ---
 
-def draw_body(spider_turtle):
-    """Draws the spider's two-part body (abdomen and cephalothorax)."""
-    print("Drawing body...")
-    spider_turtle.penup()
-    
-    # Abdomen (the larger, back part)
-    spider_turtle.goto(0, -60)
-    spider_turtle.pendown()
-    spider_turtle.begin_fill()
-    spider_turtle.circle(60)
-    spider_turtle.end_fill()
-    
-    # Cephalothorax (the smaller, front part where legs attach)
-    spider_turtle.penup()
-    spider_turtle.goto(0, 0)
-    spider_turtle.pendown()
-    spider_turtle.begin_fill()
-    spider_turtle.circle(40)
-    spider_turtle.end_fill()
-    
-    spider_turtle.penup()
+def draw_web_thread(t):
+    """Draws the single thread the spider is hanging from."""
+    t.hideturtle()
+    t.pencolor(WEB_COLOR)
+    t.pensize(2)
+    t.penup()
+    # Go to the top of the screen, slightly off-center from the spider's body
+    t.goto(0, 300)
+    t.pendown()
+    # Draw down to the spinneret area of the abdomen
+    t.goto(0, -100)
+    t.penup()
 
-def draw_legs(spider_turtle):
-    """Draws the spider's eight legs, attached to the cephalothorax."""
-    print("Drawing legs...")
-    # These are the angles for each of the 8 legs, starting from the right side
-    leg_angles = [15, 45, 135, 165, 195, 225, 315, 345]
-    leg_length1 = 120  # Length of the first segment of the leg
-    leg_length2 = 90   # Length of the second segment
-    joint_angle = 45   # How much the leg bends at the joint
+def draw_body(t):
+    """Draws the spider's two-part body."""
+    t.color(SPIDER_COLOR)
     
-    for angle in leg_angles:
-        # Go to the center of the cephalothorax to start each leg
-        spider_turtle.goto(0, 40)
-        spider_turtle.setheading(angle)
-        
-        # Draw the leg
-        spider_turtle.pendown()
-        spider_turtle.forward(leg_length1)
-        
-        # Create the joint bend
-        # Legs on the right side bend right, legs on the left bend left
-        if angle < 180:
-            spider_turtle.right(joint_angle)
+    # Abdomen (the large, back part)
+    t.penup()
+    t.goto(0, -100)
+    t.pendown()
+    t.begin_fill()
+    t.circle(80)
+    t.end_fill()
+    
+    # Cephalothorax (the smaller, front part)
+    t.penup()
+    t.goto(0, 20)
+    t.pendown()
+    t.begin_fill()
+    t.circle(45)
+    t.end_fill()
+
+def draw_hourglass(t):
+    """Draws the red hourglass symbol on the abdomen."""
+    t.penup()
+    # Position in the center of the abdomen
+    t.goto(0, -25)
+    t.color(HOURGLASS_COLOR)
+    t.begin_fill()
+    
+    # Draw two triangles pointing at each other
+    # Top triangle
+    t.goto(15, -15)
+    t.goto(-15, -15)
+    t.goto(0, -40)
+    
+    # Bottom triangle
+    t.goto(15, -65)
+    t.goto(-15, -65)
+    t.goto(0, -40)
+    
+    t.end_fill()
+
+def draw_curved_tapered_leg(t, start_pos, angle, length, segments, start_width, end_width, curve_direction):
+    """
+    Draws a single leg that is curved and tapers from thick to thin.
+    - curve_direction: 1 for curving left, -1 for curving right.
+    """
+    t.penup()
+    t.goto(start_pos)
+    t.setheading(angle)
+    t.pencolor(SPIDER_COLOR)
+
+    # Calculate how much the pen size and angle should change per segment
+    width_decrement = (start_width - end_width) / segments
+    segment_length = length / segments
+    turn_angle = 70 / segments  # Total curve of 70 degrees spread over segments
+
+    for i in range(segments):
+        current_width = start_width - (i * width_decrement)
+        # Ensure width doesn't go below 1
+        t.pensize(max(1, current_width))
+        t.pendown()
+        t.forward(segment_length)
+        # Turn slightly to create the curve
+        if curve_direction == 1:
+            t.left(turn_angle)
         else:
-            spider_turtle.left(joint_angle)
-            
-        spider_turtle.forward(leg_length2)
-        spider_turtle.penup()
+            t.right(turn_angle)
+    t.penup()
 
-def draw_eyes(spider_turtle):
-    """Draws the spider's eyes on its head."""
-    print("Drawing eyes...")
-    eye_size = 8
-    # Positions for the 8 eyes in two rows
-    eye_positions = [
-        (-20, 65), (-10, 70), (10, 70), (20, 65),
-        (-18, 55), (-8, 58), (8, 58), (18, 55)
+def draw_all_legs(t):
+    """Defines and draws all eight legs."""
+    # Define properties for each of the 8 legs
+    # [angle, length, curve_direction (1=left, -1=right)]
+    leg_properties = [
+        # Right side legs (curve "outward" which is to the right)
+        [30, 180, -1],
+        [60, 190, -1],
+        [110, 160, 1], # Top back leg curves "inward"
+        [140, 150, 1], # Bottom back leg curves "inward"
+        # Left side legs (mirror images)
+        [330, 180, 1],
+        [300, 190, 1],
+        [250, 160, -1], # Top back leg curves "inward"
+        [220, 150, -1], # Bottom back leg curves "inward"
     ]
     
-    for pos in eye_positions:
-        spider_turtle.goto(pos)
-        # The dot() command is perfect for small filled circles
-        spider_turtle.dot(eye_size, EYE_COLOR)
+    for props in leg_properties:
+        angle, length, curve_dir = props
+        draw_curved_tapered_leg(
+            t=t,
+            start_pos=(0, 60), # All legs start from the cephalothorax
+            angle=angle,
+            length=length,
+            segments=20,      # More segments = smoother curve
+            start_width=12,   # Thickest part of the leg
+            end_width=1,      # Thinnest part of the leg
+            curve_direction=curve_dir
+        )
 
 # --- Main Program Execution ---
 
 if __name__ == "__main__":
     # 1. Setup the screen and turtle
     screen = turtle.Screen()
-    screen.title("Spider Drawer")
+    screen.title("Black Widow Spider")
     screen.bgcolor(BACKGROUND_COLOR)
+    # Use a bigger window size for this larger drawing
+    screen.setup(width=600, height=800)
     
-    # Create our spider turtle
-    spider = turtle.Turtle()
-    spider.shape("turtle")
-    spider.color(SPIDER_COLOR)
-    spider.pensize(PEN_SIZE)
-    spider.speed(DRAW_SPEED)
+    spider_turtle = turtle.Turtle()
+    spider_turtle.speed(DRAW_SPEED)
 
-    # 2. Draw the parts of the spider
-    draw_body(spider)
-    draw_legs(spider)
-    draw_eyes(spider)
+    # 2. Draw the parts in the correct order (from back to front)
+    print("Drawing web thread...")
+    draw_web_thread(spider_turtle)
+    
+    print("Drawing body...")
+    draw_body(spider_turtle)
+
+    print("Drawing hourglass marking...")
+    draw_hourglass(spider_turtle)
+    
+    print("Drawing legs...")
+    draw_all_legs(spider_turtle)
     
     # 3. Finish up
-    spider.hideturtle()  # Hide the turtle arrow when drawing is done
+    spider_turtle.hideturtle()
     print("Done! Click the window to close.")
-    screen.exitonclick()  # Wait for a click on the screen to close the window
+    screen.exitonclick()
